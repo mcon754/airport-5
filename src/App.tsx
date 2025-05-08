@@ -47,11 +47,53 @@ const App: React.FC = () => {
   // Save to localStorage whenever stack changes
   useEffect(() => {
     try {
+      // Store data in localStorage for offline use
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stack));
+      
+      // Also store the last update timestamp
+      localStorage.setItem(`${STORAGE_KEY}-updated`, new Date().toISOString());
+      
+      // Notify the user that data is saved (only in standalone mode)
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('Data saved for offline use');
+      }
     } catch (error) {
       console.error('Failed to save tasks to localStorage:', error);
+      
+      // Show error notification if in standalone mode
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        alert('Failed to save your changes. Please check your storage settings.');
+      }
     }
   }, [stack]);
+  
+  // Check if running in standalone mode (PWA)
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      console.log('Running as installed PWA');
+      
+      // Listen for online/offline events
+      const handleOnlineStatus = () => {
+        if (navigator.onLine) {
+          console.log('App is online');
+        } else {
+          console.log('App is offline');
+        }
+      };
+      
+      window.addEventListener('online', handleOnlineStatus);
+      window.addEventListener('offline', handleOnlineStatus);
+      
+      // Initial check
+      handleOnlineStatus();
+      
+      return () => {
+        window.removeEventListener('online', handleOnlineStatus);
+        window.removeEventListener('offline', handleOnlineStatus);
+      };
+    }
+  }, []);
 
   // Current tasks are always the tasks in the last stack item
   const currentTasks = stack[stack.length - 1].tasks;
@@ -118,6 +160,17 @@ const App: React.FC = () => {
     }
   };
 
+  // Get the parent task text if we're in a subtask view
+  const parentTaskText = stack.length > 1
+    ? (() => {
+        // Find the parent task in the previous stack level
+        const parentId = stack[stack.length - 1].parentTaskId;
+        const parentLevel = stack[stack.length - 2];
+        const parentTask = parentLevel.tasks.find(task => task.id === parentId);
+        return parentTask?.text || "Subtasks";
+      })()
+    : undefined;
+
   return (
     <div className="app">
       <TaskListView
@@ -125,6 +178,7 @@ const App: React.FC = () => {
         setTasks={setCurrentTasks}
         onOpenSubtasks={openSubtasks}
         onBack={stack.length > 1 ? goBack : undefined}
+        parentTaskText={parentTaskText}
       />
     </div>
   );

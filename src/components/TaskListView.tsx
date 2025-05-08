@@ -175,7 +175,8 @@ const TaskListView: React.FC<{
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   onOpenSubtasks: (task: Task) => void;
   onBack?: () => void;
-}> = ({ tasks, setTasks, onOpenSubtasks, onBack }) => {
+  parentTaskText?: string;
+}> = ({ tasks, setTasks, onOpenSubtasks, onBack, parentTaskText }) => {
   // State for task interactions
   const [swipingTaskId, setSwipingTaskId] = useState<string | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -399,7 +400,7 @@ const TaskListView: React.FC<{
   return (
     <div className="task-list-view" ref={containerRef}>
       <Header
-        parentTaskText={onBack ? "Subtasks" : "My Tasks"}
+        parentTaskText={onBack ? parentTaskText || "Subtasks" : "My Tasks"}
         onBack={onBack}
         onAddTask={handleAddTask}
         canAddTask={tasks.length < 10}

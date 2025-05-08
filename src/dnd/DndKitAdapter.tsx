@@ -9,7 +9,6 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragMoveEvent,
-  PointerActivationConstraint,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -61,13 +60,13 @@ export class DndKitAdapter implements DndAdapter {
     // We need to use a render function to access hooks in a class
     const DndContainer = () => {
       // Set up sensors for dnd-kit
-      const [sensorConfig, setSensorConfig] = useState({
-        activationConstraint: {
-          distance: 5, // Small distance to activate drag
-          tolerance: 5 // Small tolerance for movement
-        } as PointerActivationConstraint
-      });
-      this.setSensors = setSensorConfig;
+      // const [sensorConfig, setSensorConfig] = useState({
+      //   activationConstraint: {
+      //     distance: 5, // Small distance to activate drag
+      //     tolerance: 5 // Small tolerance for movement
+      //   } as PointerActivationConstraint
+      // });
+      // this.setSensors = setSensorConfig;
       
       // Track items order
       const [items, setItems] = useState<ElementId[]>(this.itemOrder);

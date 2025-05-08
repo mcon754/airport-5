@@ -2,6 +2,7 @@
   "name": "airport-5",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://mcon754.github.io/airport-5",
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -25,7 +26,17 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
+    "deploy:script": "node deploy.js",
+    "install:deploy-deps": "node install-deploy-deps.js",
+    "test:pwa": "node test-pwa.js",
+    "pwa": "node pwa-test.js",
+    "generate:icons": "node generate-icons.js",
+    "generate:simple-icons": "node generate-icons.js --create-simple-icons",
+    "create:android-app": "node create-android-app.js",
+    "deploy:github": "node deploy-to-github.js"
   },
   "eslintConfig": {
     "extends": [
@@ -48,6 +59,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.5",
     "autoprefixer": "^10.4.21",
+    "gh-pages": "^6.3.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.5"
   }

@@ -1,5 +1,5 @@
-import React, { useRef, useCallback, useEffect } from 'react';
-import { GestureAction, gestureEventBus, ElementId, Point } from './GestureEvents';
+import { useRef, useCallback, useEffect } from 'react'; //React, 
+import { gestureEventBus, ElementId, Point } from './GestureEvents'; //GestureAction
 
 interface GestureOptions {
   swipeThreshold?: number;
@@ -10,7 +10,7 @@ interface GestureOptions {
 export function useGestureManager(options: GestureOptions = {}) {
   // Default options
   const {
-    swipeThreshold = 80,
+    //swipeThreshold = 80,
     doubleTapDelay = 300,
     longPressDelay = 600
   } = options;
@@ -113,8 +113,8 @@ export function useGestureManager(options: GestureOptions = {}) {
     // Determine gesture type if not already determined
     if (gestureStateRef.current.currentGesture === null) {
       // Elapsed time to calculate velocity
-      const elapsed = Date.now() - gestureStateRef.current.startTime + 1; // +1 to avoid division by zero
-      const velocity = absX / elapsed;
+      //const elapsed = Date.now() - gestureStateRef.current.startTime + 1; // +1 to avoid division by zero
+      //const velocity = absX / elapsed;
       
       // Detect swipes with more tolerance for vertical movement
       // Allow vertical movement up to half of horizontal movement
@@ -168,7 +168,7 @@ export function useGestureManager(options: GestureOptions = {}) {
         point
       });
     }
-  }, [findElementAt]);
+  }, []); //[findElementAt]
   
   // Handle pointer up
   const handlePointerUp = useCallback((e: PointerEvent) => {
