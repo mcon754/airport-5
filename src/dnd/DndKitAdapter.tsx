@@ -76,14 +76,14 @@ export class DndKitAdapter implements DndAdapter {
       // Create sensors for dnd-kit
       console.log('DndKitAdapter: Creating sensors with config', sensorConfig);
       
-      // Use a simple activation constraint with a delay
-      // This gives our gesture system time to detect swipes first
+      // Use a distance-based activation constraint instead of a delay
+      // This allows immediate dragging while still differentiating from swipes
       const sensors = useSensors(
         useSensor(PointerSensor, {
           activationConstraint: {
-            delay: 150, // Short delay to allow gesture detection
+            delay: 0, // No delay for immediate response
             tolerance: 5, // Small tolerance for movement
-            distance: 5 // Small distance to activate
+            distance: 3 // Very small distance to activate - just enough to avoid accidental drags
           }
         }),
         useSensor(KeyboardSensor, {

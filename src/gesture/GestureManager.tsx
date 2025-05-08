@@ -132,14 +132,17 @@ export function useGestureManager(options: GestureOptions = {}) {
       const elapsed = Date.now() - gestureStateRef.current.startTime + 1; // +1 to avoid division by zero
       const velocity = absX / elapsed;
       
-      // Prioritize horizontal movement for swipe detection
-      if (absX > 15 && absX > absY * 1.5 && velocity > 0.2) {
-        // Fast horizontal movement = swipe
+      // Detect swipes with more tolerance for vertical movement
+      // Allow vertical movement up to half of horizontal movement
+      // if (absX > 15 && absX > absY * 1.2 && velocity > 0.01) {
+      if (absX > 15) { 
+        // Horizontal-dominant movement = swipe
         gestureStateRef.current.currentGesture = 'swipe';
         
         if (process.env.NODE_ENV === 'development') {
           console.log('Gesture: SWIPE detected', {
-            elementId: gestureStateRef.current.activeElementId
+            elementId: gestureStateRef.current.activeElementId,
+            ratio: absX / absY
           });
         }
         
@@ -155,8 +158,8 @@ export function useGestureManager(options: GestureOptions = {}) {
         window.currentGestureIntent = 'swipe';
         window.gestureTargetId = gestureStateRef.current.activeElementId;
       }
-      else if (absY > 15 || (absX > 15 && absY > absX * 0.5)) {
-        // Vertical movement or balanced movement = drag
+      else if ( absY > 15) {
+        // Any other significant movement = drag (very responsive)
         gestureStateRef.current.currentGesture = 'drag';
         
         if (process.env.NODE_ENV === 'development') {
