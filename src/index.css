@@ -1,13 +1,122 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Task List Styles */
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.task-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.back-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  align-self: flex-start;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.task-item {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  user-select: none;
+  overflow: hidden;
+  touch-action: none; /* Capture all touch events */
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-content {
+  flex-grow: 1;
+  padding-right: 10px;
+}
+
+.task-item.swiping {
+  cursor: grabbing;
+}
+
+.drag-handle {
+  flex-shrink: 0;
+  color: #bbb;
+  cursor: grab;
+  font-size: 18px;
+  padding: 5px;
+  margin-right: -10px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.task-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subtask-indicator {
+  font-size: 10px;
+  color: #2196F3;
+  margin-left: 8px;
+}
+
+.task-item input {
+  width: 100%;
+  padding: 8px 4px;
+  font-size: 16px;
+  border: 1px solid #2196F3;
+  border-radius: 4px;
+  outline: none;
+}
+
+.add-task-button {
+  padding: 12px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-task-button:hover {
+  background-color: #1976D2;
+}
+
+.add-task-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Swipe animation */
+@keyframes swipeOut {
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.swipe-out {
+  animation: swipeOut 0.3s forwards;
 }

@@ -1,26 +1,108 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState } from 'react';
 import './App.css';
+import TaskListView from './components/TaskListView';
 
-function App() {
+// Define Task interface
+interface Task {
+  id: string;
+  text: string;
+  subtasks?: Task[];
+}
+
+// Define stack item interface for navigation
+interface StackItem {
+  tasks: Task[];
+  parentTaskId?: string;
+}
+
+// Main App component
+const App: React.FC = () => {
+  // Initialize stack with sample tasks
+  const [stack, setStack] = useState<StackItem[]>([
+    {
+      tasks: [
+        { id: '1', text: 'Sample Task 1' },
+        { id: '2', text: 'Sample Task 2' },
+      ],
+      parentTaskId: undefined
+    },
+  ]);
+
+  // Current tasks are always the tasks in the last stack item
+  const currentTasks = stack[stack.length - 1].tasks;
+
+  // Update current tasks (with TypeScript fix)
+  const setCurrentTasks = (newTasksOrUpdater: React.SetStateAction<Task[]>) => {
+    setStack((prev) => {
+      const updatedStack = [...prev];
+      const lastStackItem = updatedStack[updatedStack.length - 1];
+      
+      const newTasks = typeof newTasksOrUpdater === 'function' 
+        ? newTasksOrUpdater(lastStackItem.tasks) 
+        : newTasksOrUpdater;
+      
+      // Update the tasks while preserving the parentTaskId
+      updatedStack[updatedStack.length - 1] = {
+        ...lastStackItem,
+        tasks: newTasks
+      };
+      
+      return updatedStack;
+    });
+  };
+
+  // Open subtasks view
+  const openSubtasks = (task: Task) => {
+    // Initialize empty subtasks array if it doesn't exist
+    const subtasks = task.subtasks || [];
+    
+    // Push subtasks to stack with reference to parent task
+    setStack((prev) => {
+      const newStack = [...prev];
+      // Store the parent task ID so we can update it when going back
+      newStack.push({
+        tasks: [...subtasks],
+        parentTaskId: task.id
+      });
+      return newStack;
+    });
+  };
+
+  // Go back to previous view
+  const goBack = () => {
+    if (stack.length > 1) {
+      // Get current stack item (contains subtasks and parentTaskId)
+      const currentStackItem = stack[stack.length - 1];
+      const updatedSubtasks = currentStackItem.tasks;
+      const parentTaskId = currentStackItem.parentTaskId;
+      
+      // Update the parent task with the possibly modified subtasks
+      setStack((prev) => {
+        const newStack = prev.slice(0, -1);
+        
+        // Find and update the parent task in the previous level
+        if (parentTaskId) {
+          const parentLevel = newStack[newStack.length - 1];
+          parentLevel.tasks = parentLevel.tasks.map(task => 
+            task.id === parentTaskId ? { ...task, subtasks: updatedSubtasks } : task
+          );
+        }
+        
+        return newStack;
+      });
+    }
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+      <TaskListView
+        tasks={currentTasks}
+        setTasks={setCurrentTasks}
+        onOpenSubtasks={openSubtasks}
+        onBack={stack.length > 1 ? goBack : undefined}
+      />
     </div>
   );
-}
+};
 
 export default App;
