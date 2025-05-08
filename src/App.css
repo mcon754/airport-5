@@ -10,27 +10,147 @@
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  min-height: 400px;
+  height: auto;
+  min-height: 600px; /* Height for up to 10 tasks */
+  max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
 }
 
+/* Mobile styles */
+@media (max-width: 768px) {
+  .app {
+    padding: 0;
+    max-width: 100%;
+  }
+  
+  .task-list-view {
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    height: 100vh;
+    max-height: none;
+  }
+}
+
+/* Header Styles */
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile styles for header */
+@media (max-width: 768px) {
+  .task-header {
+    background-color: #f9f9f9;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.header-button {
+  background-color: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 1.25rem;
+}
+
+.header-button:hover {
+  background-color: #f0f0f0;
+}
+
+.header-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.back-button {
+  background-color: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+
+.back-button:hover {
+  background-color: #f0f0f0;
+}
+
 .task-list {
-  padding: 0.5rem;
+  padding: 0;
   flex-grow: 1;
+  overflow-y: auto;
+  background-color: #fff;
+}
+
+/* Mobile styles for task list */
+@media (max-width: 768px) {
+  .task-list {
+    background-color: transparent;
+  }
 }
 
 .task-item {
   background-color: white;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #eaeaea;
+  padding: 14px 16px;
   cursor: grab;
   position: relative;
   overflow: hidden;
   user-select: none;
   touch-action: none;
+  transition: background-color 0.2s;
+  margin-bottom: 2px; /* Small gap between tasks */
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.task-item:hover {
+  background-color: #f9f9f9;
+}
+
+.task-item:last-child {
+  border-bottom: none;
+}
+
+/* Mobile styles for task items */
+@media (max-width: 768px) {
+  .task-item {
+    border-bottom: 1px solid #f0f0f0;
+  }
 }
 
 .task-item.swiping {
@@ -41,6 +161,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
 }
 
 .task-text {
@@ -75,40 +196,17 @@
   box-shadow: 0 0 0 2px rgba(122, 192, 255, 0.2);
 }
 
-.back-button {
-  background-color: #f3f3f3;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  margin: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
+/* Button styles moved to header */
+.add-button {
+  color: #4c97ea;
 }
 
-.back-button:hover {
-  background-color: #e6e6e6;
+.undo-button, .redo-button {
+  color: #666;
 }
 
-.add-task-button {
-  background-color: #4c97ea;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.add-task-button:hover {
-  background-color: #3a85d8;
-}
-
-.add-task-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.settings-button {
+  color: #555;
 }
 
 /* Animation for drag */

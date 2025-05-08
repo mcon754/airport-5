@@ -129,6 +129,46 @@ const TaskItem = React.memo(function TaskItem({
          prevProps.isEditing === nextProps.isEditing;
 });
 
+// Header component
+const Header: React.FC<{
+  parentTaskText?: string;
+  onBack?: () => void;
+  onAddTask: () => void;
+  canAddTask: boolean;
+}> = ({ parentTaskText, onBack, onAddTask, canAddTask }) => {
+  return (
+    <div className="task-header">
+      <div className="header-left">
+        {onBack && (
+          <button className="back-button" onClick={onBack}>
+            <span className="back-icon">←</span>
+          </button>
+        )}
+        <h2 className="header-title">{parentTaskText || 'Tasks'}</h2>
+      </div>
+      <div className="header-actions">
+        <button className="header-button undo-button" title="Undo">
+          <span>↩</span>
+        </button>
+        <button className="header-button redo-button" title="Redo">
+          <span>↪</span>
+        </button>
+        <button
+          className="header-button add-button"
+          onClick={onAddTask}
+          disabled={!canAddTask}
+          title="Add Task"
+        >
+          <span>+</span>
+        </button>
+        <button className="header-button settings-button" title="Settings">
+          <span>⚙</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Main TaskListView component
 const TaskListView: React.FC<{
   tasks: Task[];
@@ -358,9 +398,12 @@ const TaskListView: React.FC<{
   
   return (
     <div className="task-list-view" ref={containerRef}>
-      {onBack && (
-        <button className="back-button" onClick={onBack}>Back</button>
-      )}
+      <Header
+        parentTaskText={onBack ? "Subtasks" : "My Tasks"}
+        onBack={onBack}
+        onAddTask={handleAddTask}
+        canAddTask={tasks.length < 10}
+      />
       
       {dndAdapter.current.wrapContainer(
         <div className="task-list">
@@ -383,14 +426,6 @@ const TaskListView: React.FC<{
           ))}
         </div>
       )}
-      
-      <button 
-        className="add-task-button"
-        onClick={handleAddTask}
-        disabled={tasks.length >= 10} // MAX_TASKS
-      >
-        Add Task
-      </button>
     </div>
   );
 };
