@@ -72,7 +72,7 @@ dependencies {
 
 ```xml
 <resources>
-    <string name="app_name">Task Manager</string>
+    <string name="app_name">Airport</string>
     <string name="pwa_url">https://your-deployed-pwa-url/</string>
 </resources>
 ```

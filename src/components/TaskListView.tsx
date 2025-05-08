@@ -536,7 +536,7 @@ const TaskListView: React.FC<{
   return (
     <div className="task-list-view" ref={containerRef}>
       <Header
-        parentTaskText={onBack ? parentTaskText || "Subtasks" : "My Tasks"}
+        parentTaskText={onBack ? parentTaskText || "Subtasks" : "✈"}
         onBack={onBack}
         onAddTask={handleAddTask}
         canAddTask={tasks.length < 10}
