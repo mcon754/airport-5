@@ -75,23 +75,11 @@ const TaskItem = React.memo(function TaskItem({
 }: TaskItemProps) {
   const taskRef = useRef<HTMLDivElement>(null);
   
-  // Register the element when it's mounted - only log in development
+  // Register the element when it's mounted
   useEffect(() => {
     if (taskRef.current) {
       // Register the element with the gesture system
       registerElement(task.id, taskRef.current);
-      
-      // Only add these in development mode
-      if (process.env.NODE_ENV === 'development') {
-        // Add test handlers for debugging
-        taskRef.current.addEventListener('click', () => {
-          console.log('DIRECT CLICK TEST: Task element was clicked!', task.id);
-        });
-        
-        taskRef.current.addEventListener('pointerdown', (e) => {
-          console.log('DIRECT POINTER TEST: Task element pointer down!', task.id, e.clientX, e.clientY);
-        });
-      }
     }
     
     return () => {
@@ -165,16 +153,10 @@ const TaskListView: React.FC<{
   
   // Task management functions - memoized to prevent unnecessary re-renders
   const handleRemoveTask = useCallback((id: string) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('TaskListView: Removing task', id);
-    }
     setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
   }, [setTasks]);
   
   const handleEditTask = useCallback((id: string, newText: string) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('TaskListView: Editing task', id, newText);
-    }
     if (!newText.trim()) {
       // Remove task if text is empty
       handleRemoveTask(id);
@@ -190,18 +172,29 @@ const TaskListView: React.FC<{
   
   // Insert a new task at specific index
   const handleInsertTask = useCallback((index: number) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('TaskListView: Inserting task at index', index);
-    }
     if (tasks.length >= 10) { // MAX_TASKS limit
       alert(`You can't add more than 10 tasks to this view.`);
       return;
     }
     
+    // Ensure index is valid
+    const validIndex = Math.max(-1, Math.min(index, tasks.length - 1));
+    
     const newTaskId = Date.now().toString();
     setTasks(prevTasks => {
       const newTasks = [...prevTasks];
-      newTasks.splice(index + 1, 0, { id: newTaskId, text: 'New Task' });
+      // Insert after the specified index, or at the beginning if index is -1
+      // or at the end if index is out of bounds
+      if (validIndex === -1) {
+        // Insert at the beginning
+        newTasks.unshift({ id: newTaskId, text: 'New Task' });
+      } else if (validIndex >= prevTasks.length - 1) {
+        // Insert at the end
+        newTasks.push({ id: newTaskId, text: 'New Task' });
+      } else {
+        // Insert after the specified index
+        newTasks.splice(validIndex + 1, 0, { id: newTaskId, text: 'New Task' });
+      }
       return newTasks;
     });
     
@@ -211,9 +204,6 @@ const TaskListView: React.FC<{
   
   // Add a new task at the end
   const handleAddTask = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('TaskListView: Adding new task at the end');
-    }
     if (tasks.length >= 10) { // MAX_TASKS limit
       alert(`You can't add more than 10 tasks to this view.`);
       return;
@@ -228,28 +218,28 @@ const TaskListView: React.FC<{
   
   // Handle gesture events - memoized to prevent unnecessary re-renders
   const handleGestureEvent = useCallback((action: GestureAction) => {
-    // Only log in development and only for important events
-    const isDev = process.env.NODE_ENV === 'development';
-    
     // Handle each gesture type with specific task logic
     switch (action.type) {
       case 'GESTURE_TAP': {
         // Single tap - enter edit mode
         if (action.elementId) {
-          if (isDev) console.log('TaskListView: Tap on task', action.elementId);
           setEditingTaskId(action.elementId);
         }
         break;
       }
       
       case 'GESTURE_DOUBLE_TAP': {
-        // Double tap - insert new task
+        // Double tap - insert new task at the position of the double tap
         if (action.elementId) {
-          if (isDev) console.log('TaskListView: Double tap on task', action.elementId);
+          // If double-tapping on a task, insert at that task's position (not after it)
           const index = tasks.findIndex(t => t.id === action.elementId);
           if (index !== -1) {
-            handleInsertTask(index);
+            // Insert at the current index, displacing the current task down
+            handleInsertTask(index - 1); // -1 because we want to insert before this task
           }
+        } else {
+          // Double tap on empty space - add at the end of the list
+          handleInsertTask(tasks.length - 1); // This will add at the end
         }
         break;
       }
@@ -257,7 +247,6 @@ const TaskListView: React.FC<{
       case 'GESTURE_LONG_PRESS': {
         // Long press - open subtasks
         if (action.elementId) {
-          if (isDev) console.log('TaskListView: Long press on task', action.elementId);
           const task = tasks.find(t => t.id === action.elementId);
           if (task) {
             onOpenSubtasks(task);
@@ -268,7 +257,6 @@ const TaskListView: React.FC<{
       
       case 'GESTURE_SWIPE_START': {
         // Start tracking swipe
-        if (isDev) console.log('TaskListView: Swipe start on task', action.elementId);
         setSwipingTaskId(action.elementId);
         setSwipeOffset(0);
         break;
@@ -277,7 +265,6 @@ const TaskListView: React.FC<{
       case 'GESTURE_SWIPE_MOVE': {
         // Update swipe UI
         if (action.elementId === swipingTaskId) {
-          // Don't log every move event - too noisy
           setSwipeOffset(action.distance);
         }
         break;
@@ -286,7 +273,6 @@ const TaskListView: React.FC<{
       case 'GESTURE_SWIPE_END': {
         // Complete swipe if threshold met
         if (action.elementId === swipingTaskId) {
-          if (isDev) console.log('TaskListView: Swipe end on task', action.elementId, action.distance);
           if (action.distance < -80 && action.elementId) { // SWIPE_THRESHOLD
             // Delete the task
             handleRemoveTask(action.elementId);
@@ -298,18 +284,10 @@ const TaskListView: React.FC<{
         break;
       }
       
-      case 'GESTURE_DRAG_START': {
-        if (isDev) console.log('TaskListView: Drag start on task', action.elementId);
-        break;
-      }
-      
-      case 'GESTURE_DRAG_MOVE': {
-        // Don't log every move event - too noisy
-        break;
-      }
-      
+      case 'GESTURE_DRAG_START':
+      case 'GESTURE_DRAG_MOVE':
       case 'GESTURE_DRAG_END': {
-        if (isDev) console.log('TaskListView: Drag end on task', action.elementId);
+        // No special handling needed for drag events
         break;
       }
     }
@@ -338,34 +316,16 @@ const TaskListView: React.FC<{
   // Handle DnD events - only once with stable reference
   useEffect(() => {
     const unsubscribeDnd = dndAdapter.current.addDragListener((event: DragEvent) => {
-      const isDev = process.env.NODE_ENV === 'development';
-      if (isDev) console.log('TaskListView: Received DnD event:', event.type);
-      
       if (event.type === 'drag-end' && event.source && event.destination) {
         // Reorder tasks
         const oldIndex = event.source.index;
         const newIndex = event.destination.index;
-        
-        if (isDev) {
-          console.log('TaskListView: Reordering tasks', {
-            oldIndex,
-            newIndex,
-            currentTasksLength: tasksRef.current.length
-          });
-        }
         
         // Validate indices before reordering
         setTasks(prevTasks => {
           // Safety check to ensure indices are valid
           if (oldIndex < 0 || oldIndex >= prevTasks.length ||
               newIndex < 0 || newIndex >= prevTasks.length) {
-            if (isDev) {
-              console.error('TaskListView: Invalid indices for reordering', {
-                oldIndex,
-                newIndex,
-                tasksLength: prevTasks.length
-              });
-            }
             return prevTasks; // Return unchanged if indices are invalid
           }
           

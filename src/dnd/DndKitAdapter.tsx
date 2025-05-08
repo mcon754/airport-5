@@ -74,8 +74,6 @@ export class DndKitAdapter implements DndAdapter {
       this.setItems = setItems;
       
       // Create sensors for dnd-kit
-      console.log('DndKitAdapter: Creating sensors with config', sensorConfig);
-      
       // Use a distance-based activation constraint instead of a delay
       // This allows immediate dragging while still differentiating from swipes
       const sensors = useSensors(
@@ -90,11 +88,8 @@ export class DndKitAdapter implements DndAdapter {
           coordinateGetter: sortableKeyboardCoordinates,
         })
       );
-      
-      console.log('DndKitAdapter: Sensors created');
 
       const handleDragStart = (event: DragStartEvent) => {
-        console.log('DndKitAdapter: Drag start event', event.active.id);
         this.isDragging = true;
         this.activeItemId = event.active.id as ElementId;
         
@@ -120,14 +115,7 @@ export class DndKitAdapter implements DndAdapter {
       };
 
       const handleDragEnd = (event: DragEndEvent) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('DndKitAdapter: Drag end event', event);
-        }
-        
         if (!this.activeItemId) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('DndKitAdapter: No active item ID in drag end handler');
-          }
           return;
         }
         
@@ -145,16 +133,6 @@ export class DndKitAdapter implements DndAdapter {
           // Validate indices
           if (oldIndex === -1 || newIndex === -1 ||
               oldIndex >= currentItems.length || newIndex >= currentItems.length) {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('DndKitAdapter: Invalid indices for drag end', {
-                activeId: active.id,
-                overId: over.id,
-                oldIndex,
-                newIndex,
-                itemsLength: currentItems.length
-              });
-            }
-            
             // Reset state without notifying listeners
             this.isDragging = false;
             this.activeItemId = null;
@@ -179,14 +157,6 @@ export class DndKitAdapter implements DndAdapter {
           const index = currentItems.indexOf(active.id as ElementId);
           
           if (index === -1 || index >= currentItems.length) {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('DndKitAdapter: Invalid index for drag end', {
-                activeId: active.id,
-                index,
-                itemsLength: currentItems.length
-              });
-            }
-            
             // Reset state without notifying listeners
             this.isDragging = false;
             this.activeItemId = null;
@@ -295,12 +265,10 @@ export class DndKitAdapter implements DndAdapter {
 
   // Programmatically start dragging
   startDrag = (itemId: ElementId) => {
-    console.log('DndKitAdapter: Programmatic drag start requested for', itemId);
     // dnd-kit doesn't support programmatic drag initiation
     // but we can update our gesture coordination system
     window.currentGestureIntent = 'drag';
     window.gestureTargetId = itemId;
-    console.log('DndKitAdapter: Set global gesture intent to drag for', itemId);
   };
 
   // Programmatically move dragged item
@@ -316,11 +284,9 @@ export class DndKitAdapter implements DndAdapter {
 
   // Add a drag event listener
   addDragListener = (handler: (event: DragEvent) => void) => {
-    console.log('DndKitAdapter: Adding drag event listener, total listeners:', this.listeners.length + 1);
     this.listeners.push(handler);
     return () => {
       this.listeners = this.listeners.filter(l => l !== handler);
-      console.log('DndKitAdapter: Removed drag event listener, remaining listeners:', this.listeners.length);
     };
   };
 

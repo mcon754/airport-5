@@ -17,28 +17,14 @@ export class GestureEventBus {
   private listeners: ((action: GestureAction) => void)[] = [];
 
   dispatch(action: GestureAction) {
-    // Only log in development mode and only for important events
-    if (process.env.NODE_ENV === 'development' &&
-        action.type !== 'GESTURE_DRAG_MOVE' &&
-        action.type !== 'GESTURE_SWIPE_MOVE') {
-      console.log('GestureEventBus: Dispatching event', action.type);
-    }
     this.listeners.forEach(listener => listener(action));
   }
 
   subscribe(listener: (action: GestureAction) => void) {
-    // Only log in development mode
-    if (process.env.NODE_ENV === 'development') {
-      console.log('GestureEventBus: New subscriber added');
-    }
     this.listeners.push(listener);
     // Return unsubscribe function
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
-      // Only log in development mode
-      if (process.env.NODE_ENV === 'development') {
-        console.log('GestureEventBus: Subscriber removed');
-      }
     };
   }
 }

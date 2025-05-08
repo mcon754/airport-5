@@ -53,18 +53,8 @@ export function useGestureManager(options: GestureOptions = {}) {
   
   // Handle pointer down
   const handlePointerDown = useCallback((e: PointerEvent) => {
-    const isDev = process.env.NODE_ENV === 'development';
-    if (isDev) {
-      console.log('Gesture: Pointer down detected', e.clientX, e.clientY);
-    }
-    
     const point = { x: e.clientX, y: e.clientY };
     const elementId = findElementAt(point);
-    
-    if (isDev && elementId) {
-      console.log('Gesture: Element found at pointer location:', elementId);
-    }
-    
     const now = Date.now();
     
     // Reset any existing long press timer
@@ -109,12 +99,6 @@ export function useGestureManager(options: GestureOptions = {}) {
     const deltaX = point.x - gestureStateRef.current.startPoint.x;
     const deltaY = point.y - gestureStateRef.current.startPoint.y;
     
-    // Only log significant movement in development mode
-    const isDev = process.env.NODE_ENV === 'development';
-    if (isDev && (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15)) {
-      console.log('Gesture: Significant movement detected', { deltaX, deltaY });
-    }
-    
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
     
@@ -134,17 +118,9 @@ export function useGestureManager(options: GestureOptions = {}) {
       
       // Detect swipes with more tolerance for vertical movement
       // Allow vertical movement up to half of horizontal movement
-      // if (absX > 15 && absX > absY * 1.2 && velocity > 0.01) {
       if (absX > 15) { 
         // Horizontal-dominant movement = swipe
         gestureStateRef.current.currentGesture = 'swipe';
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Gesture: SWIPE detected', {
-            elementId: gestureStateRef.current.activeElementId,
-            ratio: absX / absY
-          });
-        }
         
         // Dispatch swipe start
         gestureEventBus.dispatch({
@@ -158,15 +134,9 @@ export function useGestureManager(options: GestureOptions = {}) {
         window.currentGestureIntent = 'swipe';
         window.gestureTargetId = gestureStateRef.current.activeElementId;
       }
-      else if ( absY > 15) {
+      else if (absY > 15) {
         // Any other significant movement = drag (very responsive)
         gestureStateRef.current.currentGesture = 'drag';
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Gesture: DRAG detected', {
-            elementId: gestureStateRef.current.activeElementId
-          });
-        }
         
         // Dispatch drag start
         gestureEventBus.dispatch({
@@ -225,10 +195,6 @@ export function useGestureManager(options: GestureOptions = {}) {
       // Calculate velocity
       const velocity = absX / (elapsed || 1); // Avoid division by zero
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Gesture: Completing swipe gesture');
-      }
-      
       gestureEventBus.dispatch({
         type: 'GESTURE_SWIPE_END',
         elementId: gestureStateRef.current.activeElementId,
@@ -238,10 +204,6 @@ export function useGestureManager(options: GestureOptions = {}) {
       });
     }
     else if (gestureStateRef.current.currentGesture === 'drag') {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Gesture: Completing drag gesture');
-      }
-      
       gestureEventBus.dispatch({
         type: 'GESTURE_DRAG_END',
         elementId: gestureStateRef.current.activeElementId,
@@ -253,8 +215,12 @@ export function useGestureManager(options: GestureOptions = {}) {
       // This was a tap (minimal movement and short duration)
       const { lastTapTime, lastTapElementId } = gestureStateRef.current;
       
-      if (now - lastTapTime < doubleTapDelay && lastTapElementId === gestureStateRef.current.activeElementId) {
-        // Double tap
+      // Check if this is a double tap (on same element or both on empty space)
+      const isSameElement = lastTapElementId === gestureStateRef.current.activeElementId;
+      const isBothEmpty = lastTapElementId === null && gestureStateRef.current.activeElementId === null;
+      
+      if (now - lastTapTime < doubleTapDelay && (isSameElement || isBothEmpty)) {
+        // Double tap - works on elements or empty space
         gestureEventBus.dispatch({
           type: 'GESTURE_DOUBLE_TAP',
           elementId: gestureStateRef.current.activeElementId,
@@ -278,13 +244,6 @@ export function useGestureManager(options: GestureOptions = {}) {
       }
     }
     
-    // Always ensure we complete any active gesture
-    if (gestureStateRef.current.currentGesture && !gestureStateRef.current.activeElementId) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Gesture: Gesture ended with no active element ID');
-      }
-    }
-    
     // Reset gesture state
     gestureStateRef.current = {
       ...gestureStateRef.current,
@@ -300,8 +259,6 @@ export function useGestureManager(options: GestureOptions = {}) {
   
   // Register event handlers to container
   const gestureBindings = useCallback((element: HTMLElement | null) => {
-    console.log('Gesture: Binding to element', element);
-    
     // Clean up any existing document-level listeners
     document.removeEventListener('pointermove', handlePointerMove);
     document.removeEventListener('pointerup', handlePointerUp);
@@ -309,21 +266,10 @@ export function useGestureManager(options: GestureOptions = {}) {
     
     if (containerRef.current) {
       // Remove old event listeners if container changes
-      console.log('Gesture: Removing listeners from previous element');
       containerRef.current.removeEventListener('pointerdown', handlePointerDown);
     }
     
     if (element) {
-      // Add new event listeners
-      console.log('Gesture: Adding listeners to new element');
-      
-      // Only add test handlers in development mode
-      if (process.env.NODE_ENV === 'development') {
-        element.addEventListener('click', () => {
-          console.log('CLICK TEST: Element was clicked!');
-        });
-      }
-      
       // Only add pointerdown to the container
       element.addEventListener('pointerdown', handlePointerDown);
       

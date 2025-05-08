@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import TaskListView from './components/TaskListView';
 
@@ -15,18 +15,43 @@ interface StackItem {
   parentTaskId?: string;
 }
 
+// Storage key for localStorage
+const STORAGE_KEY = 'airport-task-stack';
+
 // Main App component
 const App: React.FC = () => {
-  // Initialize stack with sample tasks
-  const [stack, setStack] = useState<StackItem[]>([
-    {
-      tasks: [
-        { id: '1', text: 'Sample Task 1' },
-        { id: '2', text: 'Sample Task 2' },
-      ],
-      parentTaskId: undefined
-    },
-  ]);
+  // Initialize stack from localStorage or use default
+  const [stack, setStack] = useState<StackItem[]>(() => {
+    try {
+      // Try to load from localStorage
+      const savedStack = localStorage.getItem(STORAGE_KEY);
+      if (savedStack) {
+        return JSON.parse(savedStack);
+      }
+    } catch (error) {
+      console.error('Failed to load tasks from localStorage:', error);
+    }
+    
+    // Default initial stack
+    return [
+      {
+        tasks: [
+          { id: '1', text: 'Sample Task 1' },
+          { id: '2', text: 'Sample Task 2' },
+        ],
+        parentTaskId: undefined
+      },
+    ];
+  });
+  
+  // Save to localStorage whenever stack changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stack));
+    } catch (error) {
+      console.error('Failed to save tasks to localStorage:', error);
+    }
+  }, [stack]);
 
   // Current tasks are always the tasks in the last stack item
   const currentTasks = stack[stack.length - 1].tasks;
