@@ -211,7 +211,7 @@ export function useGestureManager(options: GestureOptions = {}) {
         point
       });
     }
-    else if (absX < 5 && absY < 5 && elapsed < 300) {
+    else if (absX < 15 && absY < 15 && elapsed < 300) {
       // This was a tap (minimal movement and short duration)
       const { lastTapTime, lastTapElementId } = gestureStateRef.current;
       

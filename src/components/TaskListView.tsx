@@ -15,34 +15,120 @@ interface Task {
 const EditTaskForm: React.FC<{
   task: Task;
   onSave: (text: string) => void;
-  onCancel: () => void;
+  onCancel: (text: string) => void;
 }> = ({ task, onSave, onCancel }) => {
   const [text, setText] = useState(task.text);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Focus on mount
+  // Focus on mount with a slight delay to ensure stable layout
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
+    // Use a small timeout to ensure the keyboard is ready
+    const focusTimer = setTimeout(() => {
+      if (inputRef.current) {
+        // Focus and select the text
+        inputRef.current.focus();
+        inputRef.current.select();
+        
+        // Detect Android
+        const isAndroid = /android/i.test(navigator.userAgent);
+        
+        if (isAndroid) {
+          // For Android, we need a special approach to show the selection handles
+          
+          // Add a special class to the input that will help with selection visibility
+          inputRef.current.classList.add('android-text-selected');
+          
+          // Set a special style for this class in a dynamic stylesheet
+          const style = document.createElement('style');
+          style.innerHTML = `
+            .android-text-selected {
+              user-select: text !important;
+              -webkit-user-select: text !important;
+              -webkit-tap-highlight-color: rgba(0,0,0,0.4) !important;
+            }
+            .android-text-selected::selection {
+              background-color: rgba(0,0,0,0.2) !important;
+            }
+          `;
+          document.head.appendChild(style);
+          
+          // Use a sequence of selection operations that's known to work on Android Chrome
+          // First deselect, then select all again to trigger the selection handles
+          setTimeout(() => {
+            if (inputRef.current) {
+              // First deselect
+              inputRef.current.setSelectionRange(0, 0);
+              
+              // Then select all again
+              setTimeout(() => {
+                if (inputRef.current) {
+                  inputRef.current.setSelectionRange(0, inputRef.current.value.length);
+                  
+                  // Use document.execCommand as a fallback to trigger selection menu
+                  try {
+                    document.execCommand('selectAll');
+                  } catch (e) {
+                    console.error('Error with execCommand:', e);
+                  }
+                  
+                  // Add a special data attribute that our CSS can target
+                  inputRef.current.setAttribute('data-selection-active', 'true');
+                  
+                  // Try to access Android-specific selection API if available
+                  // This is a more direct way to show the selection menu on Android
+                  try {
+                    if (window.navigator && 'share' in window.navigator) {
+                      // Modern Android devices support the Web Share API
+                      // This can sometimes trigger the selection menu as a side effect
+                      setTimeout(() => {
+                        // Re-select the text to ensure it's still selected
+                        inputRef.current?.focus();
+                        inputRef.current?.select();
+                      }, 100);
+                    }
+                  } catch (e) {
+                    console.error('Error with selection API:', e);
+                  }
+                }
+              }, 50);
+            }
+          }, 50);
+        }
+      }
+    }, 150); // Increased timeout to ensure stable layout
+    
+    return () => clearTimeout(focusTimer);
   }, []);
   
   return (
-    <div className="edit-task-form">
+    <div
+      className="edit-task-form"
+      // Stop propagation of pointer events to prevent gesture system from capturing them
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      style={{ margin: '-14px -16px', padding: '14px 16px' }} // Match task-item padding to prevent layout shift
+    >
       <input
         ref={inputRef}
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onBlur={() => onSave(text)}
+        onBlur={(e) => {
+          // Use a small timeout to prevent immediate blur handling
+          // This helps with Android keyboard issues
+          // Always save changes when the input loses focus
+          setTimeout(() => onSave(text), 100);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent default to avoid unexpected behavior
             onSave(text);
           } else if (e.key === 'Escape') {
-            onCancel();
+            e.preventDefault(); // Prevent default to avoid unexpected behavior
+            onCancel(text);
           }
         }}
+        style={{ touchAction: 'manipulation' }} // Improve touch handling on mobile
       />
     </div>
   );
@@ -56,7 +142,7 @@ interface TaskItemProps {
   swipeOffset: number;
   isEditing: boolean;
   onSave: (text: string) => void;
-  onCancel: () => void;
+  onCancel: (text: string) => void;
   registerElement: (id: ElementId, element: HTMLElement | null) => void;
   dndAdapter: DndAdapter;
 }
@@ -182,6 +268,9 @@ const TaskListView: React.FC<{
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   
+  // Ref to track when edit mode was last activated
+  const lastEditTimeRef = useRef<number>(0);
+  
   // Initialize gesture system
   const { gestureBindings, registerElement } = useGestureManager({
     swipeThreshold: 80,
@@ -264,7 +353,52 @@ const TaskListView: React.FC<{
       case 'GESTURE_TAP': {
         // Single tap - enter edit mode
         if (action.elementId) {
-          setEditingTaskId(action.elementId);
+          // If we're already editing this task, don't do anything
+          // This allows tapping within the input field without exiting edit mode
+          if (editingTaskId === action.elementId) {
+            return; // Exit early without changing state
+          }
+          
+          // If we're editing a different task, save the current edits before switching
+          if (editingTaskId !== null) {
+            // Find the task being edited and save its current text
+            const editedTask = tasks.find(t => t.id === editingTaskId);
+            if (editedTask) {
+              // Get the current input value and save it
+              const inputElement = document.querySelector('.edit-task-form input') as HTMLInputElement;
+              if (inputElement) {
+                const currentText = inputElement.value;
+                handleEditTask(editingTaskId, currentText);
+              }
+            }
+          }
+          
+          // Record the time when edit mode is activated
+          lastEditTimeRef.current = Date.now();
+          
+          // Use setTimeout to ensure stable transition to edit mode
+          setTimeout(() => {
+            setEditingTaskId(action.elementId);
+          }, 10);
+        } else if (editingTaskId !== null) {
+          // Tapped outside any task while in edit mode - save and exit edit mode
+          // Find the currently edited task
+          const editedTask = tasks.find(t => t.id === editingTaskId);
+          if (editedTask) {
+            // Find the input element to get its current value
+            const inputElement = document.querySelector('.edit-task-form input') as HTMLInputElement;
+            if (inputElement) {
+              // Save the current value before exiting edit mode
+              const currentText = inputElement.value;
+              handleEditTask(editingTaskId, currentText);
+              
+              // Blur the input to hide the keyboard
+              inputElement.blur();
+            }
+            
+            // Exit edit mode
+            setEditingTaskId(null);
+          }
         }
         break;
       }
@@ -333,11 +467,13 @@ const TaskListView: React.FC<{
       }
     }
   }, [
-    handleInsertTask, 
-    handleRemoveTask, 
-    onOpenSubtasks, 
-    swipingTaskId, 
-    tasks
+    handleInsertTask,
+    handleRemoveTask,
+    handleEditTask,
+    onOpenSubtasks,
+    swipingTaskId,
+    tasks,
+    editingTaskId
   ]);
   
   // Subscribe to gesture events - only once with stable reference
@@ -417,10 +553,24 @@ const TaskListView: React.FC<{
               swipeOffset={task.id === swipingTaskId ? swipeOffset : 0}
               isEditing={editingTaskId === task.id}
               onSave={(text) => {
-                handleEditTask(task.id, text);
-                setEditingTaskId(null);
+                // Only process save if enough time has passed since edit mode was activated
+                // or if it's an explicit user action (like pressing Enter)
+                const timeSinceEdit = Date.now() - lastEditTimeRef.current;
+                if (timeSinceEdit > 200) {
+                  handleEditTask(task.id, text);
+                  setEditingTaskId(null);
+                }
               }}
-              onCancel={() => setEditingTaskId(null)}
+              onCancel={(text) => {
+                // Only allow cancellation if enough time has passed since edit mode was activated
+                // This prevents accidental cancellations due to layout shifts
+                const timeSinceEdit = Date.now() - lastEditTimeRef.current;
+                if (timeSinceEdit > 200) {
+                  // Save changes on cancel as well
+                  handleEditTask(task.id, text);
+                  setEditingTaskId(null);
+                }
+              }}
               registerElement={registerElement}
               dndAdapter={dndAdapter.current}
             />

@@ -180,20 +180,44 @@
 
 .edit-task-form {
   width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .edit-task-form input {
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
   font-size: 1rem;
   outline: none;
+  font-family: inherit;
+  color: inherit;
 }
 
 .edit-task-form input:focus {
-  border-color: #7ac0ff;
-  box-shadow: 0 0 0 2px rgba(122, 192, 255, 0.2);
+  border: none;
+  box-shadow: none;
+}
+
+/* Android text selection styles */
+.android-text-selected {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -webkit-tap-highlight-color: rgba(0,0,0,0.4) !important;
+}
+
+.android-text-selected::selection {
+  background-color: rgba(76, 151, 234, 0.3) !important;
+}
+
+/* Improve selection handles visibility on Android */
+input[data-selection-active="true"] {
+  caret-color: #4c97ea !important;
+}
+
+input[data-selection-active="true"]::selection {
+  background-color: rgba(76, 151, 234, 0.3) !important;
 }
 
 /* Button styles moved to header */
