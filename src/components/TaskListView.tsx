@@ -327,6 +327,14 @@ const TaskListView: React.FC<{
     return unsubscribe;
   }, [handleGestureEvent]);
   
+  // Create a ref to track the current tasks
+  const tasksRef = useRef(tasks);
+  
+  // Update the ref when tasks change
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+  
   // Handle DnD events - only once with stable reference
   useEffect(() => {
     const unsubscribeDnd = dndAdapter.current.addDragListener((event: DragEvent) => {
@@ -338,8 +346,12 @@ const TaskListView: React.FC<{
         const oldIndex = event.source.index;
         const newIndex = event.destination.index;
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('TaskListView: Reordering tasks', { oldIndex, newIndex });
+        if (isDev) {
+          console.log('TaskListView: Reordering tasks', {
+            oldIndex,
+            newIndex,
+            currentTasksLength: tasksRef.current.length
+          });
         }
         
         // Validate indices before reordering
@@ -347,11 +359,13 @@ const TaskListView: React.FC<{
           // Safety check to ensure indices are valid
           if (oldIndex < 0 || oldIndex >= prevTasks.length ||
               newIndex < 0 || newIndex >= prevTasks.length) {
-            console.error('TaskListView: Invalid indices for reordering', {
-              oldIndex,
-              newIndex,
-              tasksLength: prevTasks.length
-            });
+            if (isDev) {
+              console.error('TaskListView: Invalid indices for reordering', {
+                oldIndex,
+                newIndex,
+                tasksLength: prevTasks.length
+              });
+            }
             return prevTasks; // Return unchanged if indices are invalid
           }
           

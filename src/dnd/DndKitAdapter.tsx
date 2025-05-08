@@ -120,9 +120,14 @@ export class DndKitAdapter implements DndAdapter {
       };
 
       const handleDragEnd = (event: DragEndEvent) => {
-        console.log('DndKitAdapter: Drag end event', event);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('DndKitAdapter: Drag end event', event);
+        }
+        
         if (!this.activeItemId) {
-          console.warn('DndKitAdapter: No active item ID in drag end handler');
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('DndKitAdapter: No active item ID in drag end handler');
+          }
           return;
         }
         
@@ -130,18 +135,25 @@ export class DndKitAdapter implements DndAdapter {
         
         // Handle item reordering
         if (over && active.id !== over.id) {
-          const oldIndex = items.indexOf(active.id as ElementId);
-          const newIndex = items.indexOf(over.id as ElementId);
+          // Get the current items from the context - important to get fresh values
+          // This ensures we have the latest item list after any removals
+          const currentItems = [...items]; // Use the current state, not the class property
+          
+          const oldIndex = currentItems.indexOf(active.id as ElementId);
+          const newIndex = currentItems.indexOf(over.id as ElementId);
           
           // Validate indices
-          if (oldIndex === -1 || newIndex === -1) {
-            console.error('DndKitAdapter: Invalid indices for drag end', {
-              activeId: active.id,
-              overId: over.id,
-              oldIndex,
-              newIndex,
-              items
-            });
+          if (oldIndex === -1 || newIndex === -1 ||
+              oldIndex >= currentItems.length || newIndex >= currentItems.length) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('DndKitAdapter: Invalid indices for drag end', {
+                activeId: active.id,
+                overId: over.id,
+                oldIndex,
+                newIndex,
+                itemsLength: currentItems.length
+              });
+            }
             
             // Reset state without notifying listeners
             this.isDragging = false;
@@ -150,11 +162,11 @@ export class DndKitAdapter implements DndAdapter {
           }
           
           // Update items order
-          const newItems = arrayMove(items, oldIndex, newIndex);
+          const newItems = arrayMove(currentItems, oldIndex, newIndex);
           setItems(newItems);
           this.itemOrder = newItems;
           
-          // Notify listeners
+          // Notify listeners - only once
           this.listeners.forEach(listener => listener({
             type: 'drag-end',
             id: active.id as ElementId,
@@ -163,14 +175,17 @@ export class DndKitAdapter implements DndAdapter {
           }));
         } else {
           // Drag cancelled or dropped in same position
-          const index = items.indexOf(active.id as ElementId);
+          const currentItems = [...items]; // Use the current state, not the class property
+          const index = currentItems.indexOf(active.id as ElementId);
           
-          if (index === -1) {
-            console.error('DndKitAdapter: Invalid index for drag end', {
-              activeId: active.id,
-              index,
-              items
-            });
+          if (index === -1 || index >= currentItems.length) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('DndKitAdapter: Invalid index for drag end', {
+                activeId: active.id,
+                index,
+                itemsLength: currentItems.length
+              });
+            }
             
             // Reset state without notifying listeners
             this.isDragging = false;
@@ -178,6 +193,7 @@ export class DndKitAdapter implements DndAdapter {
             return;
           }
           
+          // Notify listeners - only once
           this.listeners.forEach(listener => listener({
             type: 'drag-end',
             id: active.id as ElementId,
@@ -190,6 +206,9 @@ export class DndKitAdapter implements DndAdapter {
         this.isDragging = false;
         this.activeItemId = null;
       };
+      
+      // Memoize the handler to prevent duplicate events
+      const memoizedHandleDragEnd = React.useMemo(() => handleDragEnd, [items]);
 
       // Ensure items are synchronized when passed from parent
       useEffect(() => {
@@ -204,7 +223,7 @@ export class DndKitAdapter implements DndAdapter {
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragMove={handleDragMove}
-          onDragEnd={handleDragEnd}
+          onDragEnd={memoizedHandleDragEnd}
         >
           <SortableContext
             items={items}
@@ -221,11 +240,19 @@ export class DndKitAdapter implements DndAdapter {
 
   // Wrap an individual draggable item
   wrapItem = (id: ElementId, children: ReactNode, index: number): ReactNode => {
-    // Add to item order if not already there
+    // Track the item and its position, but don't update state during render
     if (!this.itemOrder.includes(id)) {
+      // Add new items to our tracking array
       this.itemOrder.push(id);
-      if (this.setItems) {
-        this.setItems(this.itemOrder);
+    } else {
+      // Track current position, but don't update state yet
+      const currentIndex = this.itemOrder.indexOf(id);
+      if (currentIndex !== index) {
+        // Update our tracking array
+        const newOrder = [...this.itemOrder];
+        newOrder.splice(currentIndex, 1);
+        newOrder.splice(index, 0, id);
+        this.itemOrder = newOrder;
       }
     }
     
@@ -239,6 +266,14 @@ export class DndKitAdapter implements DndAdapter {
         transition,
         isDragging
       } = useSortable({ id });
+      
+      // Use an effect to update the state after render
+      useEffect(() => {
+        // Now it's safe to update state
+        if (this.setItems) {
+          this.setItems([...this.itemOrder]);
+        }
+      }, []);
       
       return (
         <SortableItemWrapper
