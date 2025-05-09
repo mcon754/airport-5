@@ -21,3 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+generate-icons.js
+icon-generator.html
+open-icon-generator.js

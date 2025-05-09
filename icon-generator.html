@@ -1,78 +1,194 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Simple Icon Generator</title>
-  <style>
-    body { margin: 0; padding: 0; }
-    canvas { display: block; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airplane Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 1px solid #eee;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .download-btn {
+            padding: 8px 16px;
+            background-color: #4c97ea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .download-btn:hover {
+            background-color: #3a7bc7;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            margin-top: 30px;
+            color: #4c97ea;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .instructions {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .note {
+            background-color: #fff8e1;
+            padding: 10px 15px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .generate-all-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #4c97ea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: background-color 0.2s;
+        }
+        .generate-all-btn:hover {
+            background-color: #3a7bc7;
+        }
+        .icon-preview {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .icon-preview img {
+            margin-right: 15px;
+        }
+    </style>
 </head>
 <body>
-  <canvas id="canvas192" width="192" height="192"></canvas>
-  <canvas id="canvas512" width="512" height="512"></canvas>
-  
-  <script>
-    // Function to draw a simple icon
-    function drawIcon(canvas, size) {
-      const ctx = canvas.getContext('2d');
-      
-      // Background
-      ctx.fillStyle = '#4c97ea';
-      ctx.fillRect(0, 0, size, size);
-      
-      // Task list icon
-      ctx.fillStyle = 'white';
-      
-      // Draw three lines representing tasks
-      const lineHeight = size * 0.1;
-      const lineWidth = size * 0.6;
-      const startX = size * 0.2;
-      const startY = size * 0.3;
-      const spacing = size * 0.15;
-      
-      for (let i = 0; i < 3; i++) {
-        ctx.fillRect(startX, startY + (i * spacing), lineWidth, lineHeight);
-      }
-      
-      // Draw checkmark
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = size * 0.08;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      ctx.beginPath();
-      ctx.moveTo(size * 0.3, size * 0.7);
-      ctx.lineTo(size * 0.45, size * 0.85);
-      ctx.lineTo(size * 0.7, size * 0.5);
-      ctx.stroke();
-    }
+    <h1>✈ Airplane Icon Generator</h1>
     
-    // Draw icons
-    drawIcon(document.getElementById('canvas192'), 192);
-    drawIcon(document.getElementById('canvas512'), 512);
+    <div class="instructions">
+        <h2>Instructions</h2>
+        <p>This tool creates icon files with the airplane symbol (✈) for your app.</p>
+        <ol>
+            <li>Click the "Generate All Icons" button below</li>
+            <li>Download each icon using the download buttons</li>
+            <li>Place the downloaded files in your project's <code>public</code> folder</li>
+        </ol>
+        
+        <div class="note">
+            <strong>Note:</strong> For the favicon, you'll need to convert the PNG to ICO format.
+            You can use an online converter like <a href="https://convertio.co/png-ico/" target="_blank">Convertio</a>
+            or <a href="https://www.favicon-generator.org/" target="_blank">Favicon Generator</a>.
+        </div>
+    </div>
     
-    // Download functions
-    function downloadCanvas(canvas, filename) {
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    <button id="generateAllBtn" class="generate-all-btn">Generate All Icons</button>
     
-    // Download after a short delay
-    setTimeout(() => {
-      downloadCanvas(document.getElementById('canvas192'), 'logo192.png');
-      setTimeout(() => {
-        downloadCanvas(document.getElementById('canvas512'), 'logo512.png');
-        setTimeout(() => {
-          alert('Icons generated! Move them to the public folder of your project.');
-        }, 500);
-      }, 500);
-    }, 500);
-  </script>
+    <h2>App Icons</h2>
+    
+    <div class="canvas-container">
+        <h3>512x512 Icon (logo512.png)</h3>
+        <canvas id="canvas512" width="512" height="512"></canvas>
+        <a id="download512" class="download-btn" download="logo512.png">Download logo512.png</a>
+    </div>
+    
+    <div class="canvas-container">
+        <h3>192x192 Icon (logo192.png)</h3>
+        <canvas id="canvas192" width="192" height="192"></canvas>
+        <a id="download192" class="download-btn" download="logo192.png">Download logo192.png</a>
+    </div>
+    
+    <div class="canvas-container">
+        <h3>64x64 Icon (for favicon.ico)</h3>
+        <canvas id="canvas64" width="64" height="64"></canvas>
+        <a id="download64" class="download-btn" download="favicon.png">Download favicon.png</a>
+        <p class="note">Remember to convert this PNG to ICO format before using it as favicon.ico</p>
+    </div>
+    
+    <script>
+        document.getElementById('generateAllBtn').addEventListener('click', generateIcons);
+        
+        function generateIcons() {
+            generateIcon('canvas64', 64, 'download64');
+            generateIcon('canvas192', 192, 'download192');
+            generateIcon('canvas512', 512, 'download512');
+            
+            // Change button text to indicate completion
+            const button = document.getElementById('generateAllBtn');
+            button.textContent = 'Icons Generated! ✓';
+            button.style.backgroundColor = '#4caf50';
+            
+            // Scroll to the first icon
+            document.getElementById('canvas512').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function generateIcon(canvasId, size, downloadId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Clear with transparent background
+            ctx.clearRect(0, 0, size, size);
+            
+            // Draw white circle
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add a subtle border to make the white circle visible on white backgrounds
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = size * 0.01;
+            ctx.stroke();
+            
+            // Draw airplane symbol (50% bigger and centered)
+            ctx.fillStyle = 'black';
+            // Increase font size by 50% (from 0.5 to 0.75)
+            ctx.font = `bold ${size * 0.75}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Position in the center, but moved down by 5%
+            ctx.fillText('✈', size/2, size/2 + (size * 0.05));
+            
+            // Update download link
+            const downloadLink = document.getElementById(downloadId);
+            downloadLink.href = canvas.toDataURL('image/png');
+        }
+        
+        // Generate icons on page load
+        window.onload = generateIcons;
+    </script>
 </body>
 </html>
-  

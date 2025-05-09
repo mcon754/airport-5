@@ -1,176 +1,80 @@
 const fs = require('fs');
+const { createCanvas } = require('canvas');
 const path = require('path');
-const { execSync } = require('child_process');
 
-// Colors for console output
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  green: '\x1b[32m',
-  cyan: '\x1b[36m',
-  yellow: '\x1b[33m',
-  red: '\x1b[31m'
-};
+// Ensure the public directory exists
+const publicDir = path.join(__dirname, 'public');
+if (!fs.existsSync(publicDir)) {
+  console.error('Public directory not found. Make sure you run this script from the project root.');
+  process.exit(1);
+}
 
-console.log(`${colors.bright}${colors.cyan}=== PWA Icon Generator ===${colors.reset}\n`);
-console.log(`${colors.yellow}This script will help you generate proper icons for your PWA.${colors.reset}\n`);
+// Function to generate an icon with the airplane symbol
+function generateIcon(size) {
+  // Create canvas
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  
+  // Clear with transparent background
+  ctx.clearRect(0, 0, size, size);
+  
+  // Draw white circle
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Add a subtle border to make the white circle visible on white backgrounds
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = size * 0.01;
+  ctx.stroke();
+  
+  // Draw airplane symbol (50% bigger and centered)
+  ctx.fillStyle = 'black';
+  // Increase font size by 50% (from 0.5 to 0.75)
+  ctx.font = `bold ${size * 0.75}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Position in the center, but moved down by 5%
+  ctx.fillText('✈', size/2, size/2 + (size * 0.05));
+  
+  return canvas;
+}
 
-// Check if ImageMagick is installed
-let hasImageMagick = false;
-try {
-  execSync('magick --version', { stdio: 'ignore' });
-  hasImageMagick = true;
-} catch (e) {
+// Generate and save icons
+async function generateIcons() {
   try {
-    execSync('convert --version', { stdio: 'ignore' });
-    hasImageMagick = true;
-  } catch (e) {
-    console.log(`${colors.red}ImageMagick is not installed or not in your PATH.${colors.reset}`);
+    console.log('Generating icons with airplane symbol...');
+    
+    // Generate 192x192 icon
+    const canvas192 = generateIcon(192);
+    const buffer192 = canvas192.toBuffer('image/png');
+    fs.writeFileSync(path.join(publicDir, 'logo192.png'), buffer192);
+    console.log('Created logo192.png');
+    
+    // Generate 512x512 icon
+    const canvas512 = generateIcon(512);
+    const buffer512 = canvas512.toBuffer('image/png');
+    fs.writeFileSync(path.join(publicDir, 'logo512.png'), buffer512);
+    console.log('Created logo512.png');
+    
+    // Generate 64x64 icon for favicon
+    // Note: This creates a PNG, you'll need to convert it to ICO format
+    // For simplicity, we'll just create the PNG version
+    const canvas64 = generateIcon(64);
+    const buffer64 = canvas64.toBuffer('image/png');
+    fs.writeFileSync(path.join(publicDir, 'favicon64.png'), buffer64);
+    console.log('Created favicon64.png (you\'ll need to convert this to ICO format)');
+    
+    console.log('\nIcon generation complete!');
+    console.log('\nNOTE: To use these icons, you need to:');
+    console.log('1. Convert favicon64.png to favicon.ico (using an online converter)');
+    console.log('2. Replace the existing favicon.ico with your converted file');
+    console.log('3. The PNG files (logo192.png and logo512.png) can be used directly');
+  } catch (error) {
+    console.error('Error generating icons:', error);
   }
 }
 
-// Instructions for generating icons
-console.log(`${colors.bright}To generate proper PWA icons:${colors.reset}\n`);
-
-if (hasImageMagick) {
-  console.log(`${colors.green}ImageMagick is installed! You can use these commands:${colors.reset}\n`);
-  
-  console.log(`1. Generate a 192x192 icon:`);
-  console.log(`   ${colors.cyan}magick convert -resize 192x192 your-source-image.png public/logo192.png${colors.reset}\n`);
-  
-  console.log(`2. Generate a 512x512 icon:`);
-  console.log(`   ${colors.cyan}magick convert -resize 512x512 your-source-image.png public/logo512.png${colors.reset}\n`);
-  
-  console.log(`3. Generate a 64x64 favicon:`);
-  console.log(`   ${colors.cyan}magick convert -resize 64x64 your-source-image.png public/favicon.ico${colors.reset}\n`);
-} else {
-  console.log(`${colors.yellow}Option 1: Install ImageMagick${colors.reset}`);
-  console.log(`1. Download from https://imagemagick.org/script/download.php`);
-  console.log(`2. After installation, run this script again\n`);
-  
-  console.log(`${colors.yellow}Option 2: Use an online tool${colors.reset}`);
-  console.log(`1. Visit https://realfavicongenerator.net/ or https://www.pwabuilder.com/imageGenerator`);
-  console.log(`2. Upload your source image`);
-  console.log(`3. Download the generated icons`);
-  console.log(`4. Place them in the public folder with these names:`);
-  console.log(`   - logo192.png (192x192)`);
-  console.log(`   - logo512.png (512x512)`);
-  console.log(`   - favicon.ico (64x64)\n`);
-}
-
-console.log(`${colors.yellow}Option 3: Use a simple colored icon${colors.reset}`);
-console.log(`If you don't have a source image, you can create a simple colored icon with this command:`);
-console.log(`${colors.cyan}npm run generate:simple-icons${colors.reset}\n`);
-
-// Function to create a simple colored icon
-function createSimpleIcon() {
-  console.log(`${colors.yellow}Creating simple colored icons...${colors.reset}`);
-  
-  // Create an HTML file that will generate the icons
-  const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Simple Icon Generator</title>
-  <style>
-    body { margin: 0; padding: 0; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
-  <canvas id="canvas192" width="192" height="192"></canvas>
-  <canvas id="canvas512" width="512" height="512"></canvas>
-  
-  <script>
-    // Function to draw a simple icon
-    function drawIcon(canvas, size) {
-      const ctx = canvas.getContext('2d');
-      
-      // Background
-      ctx.fillStyle = '#4c97ea';
-      ctx.fillRect(0, 0, size, size);
-      
-      // Task list icon
-      ctx.fillStyle = 'white';
-      
-      // Draw three lines representing tasks
-      const lineHeight = size * 0.1;
-      const lineWidth = size * 0.6;
-      const startX = size * 0.2;
-      const startY = size * 0.3;
-      const spacing = size * 0.15;
-      
-      for (let i = 0; i < 3; i++) {
-        ctx.fillRect(startX, startY + (i * spacing), lineWidth, lineHeight);
-      }
-      
-      // Draw checkmark
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = size * 0.08;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      ctx.beginPath();
-      ctx.moveTo(size * 0.3, size * 0.7);
-      ctx.lineTo(size * 0.45, size * 0.85);
-      ctx.lineTo(size * 0.7, size * 0.5);
-      ctx.stroke();
-    }
-    
-    // Draw icons
-    drawIcon(document.getElementById('canvas192'), 192);
-    drawIcon(document.getElementById('canvas512'), 512);
-    
-    // Download functions
-    function downloadCanvas(canvas, filename) {
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-    
-    // Download after a short delay
-    setTimeout(() => {
-      downloadCanvas(document.getElementById('canvas192'), 'logo192.png');
-      setTimeout(() => {
-        downloadCanvas(document.getElementById('canvas512'), 'logo512.png');
-        setTimeout(() => {
-          alert('Icons generated! Move them to the public folder of your project.');
-        }, 500);
-      }, 500);
-    }, 500);
-  </script>
-</body>
-</html>
-  `;
-  
-  // Write the HTML file
-  fs.writeFileSync('icon-generator.html', htmlContent);
-  
-  console.log(`${colors.green}Created icon-generator.html${colors.reset}`);
-  console.log(`${colors.yellow}Please open this file in your browser to generate and download the icons.${colors.reset}`);
-  console.log(`${colors.yellow}After downloading, move the icons to the public folder.${colors.reset}`);
-  
-  // Try to open the file in the default browser
-  try {
-    const openCommand = process.platform === 'win32' ? 'start' : 
-                        process.platform === 'darwin' ? 'open' : 'xdg-open';
-    execSync(`${openCommand} icon-generator.html`);
-  } catch (e) {
-    console.log(`${colors.yellow}Please open the file manually: ${path.resolve('icon-generator.html')}${colors.reset}`);
-  }
-}
-
-// Check if the user wants to create simple icons
-if (process.argv.includes('--create-simple-icons')) {
-  createSimpleIcon();
-}
-
-console.log(`${colors.bright}${colors.cyan}After generating icons:${colors.reset}`);
-console.log(`1. Place the icons in the public folder`);
-console.log(`2. Restart your development server`);
-console.log(`3. Try installing the PWA again\n`);
-
-console.log(`${colors.bright}${colors.green}For more information, see INSTALL_GUIDE.md${colors.reset}`);
+// Run the icon generation
+generateIcons();

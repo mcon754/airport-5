@@ -24,7 +24,7 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#4c97ea",
+  "theme_color": "#ffffff",
   "background_color": "#f9f9f9",
   "description": "A simple task management application",
   "categories": ["productivity", "utilities"],
