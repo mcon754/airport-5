@@ -20,8 +20,8 @@
       "purpose": "any"
     }
   ],
-  "start_url": "./",
-  "scope": "./",
+  "start_url": ".",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#ffffff",

@@ -1,184 +1,164 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import './App.css';
-import TaskListView from './components/TaskListView';
+import TaskListViewRedux from './components/TaskListViewRedux';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import {
+  initializeTasks,
+  navigateToTask,
+  navigateToParent,
+} from './store/taskSlice';
+import {
+  selectCurrentTasks,
+  selectCanNavigateBack,
+  selectHeaderText,
+  selectChildrenMap,
+  selectTasksById,
+  selectCanUndo,
+  selectCanRedo,
+} from './store/taskSelectors';
+import { undoAction, redoAction } from './store/undoActions';
+import { Task as NormalizedTask } from './types/task';
+import { DEFAULT_TASKS, isStorageAvailable } from './store/localStorage';
 
-// Define Task interface
+// Define the Task interface expected by TaskListView
 interface Task {
   id: string;
   text: string;
   subtasks?: Task[];
 }
 
-// Define stack item interface for navigation
-interface StackItem {
-  tasks: Task[];
-  parentTaskId?: string;
-}
-
-// Storage key for localStorage
-const STORAGE_KEY = 'airport-task-stack';
-
 // Main App component
 const App: React.FC = () => {
-  // Initialize stack from localStorage or use default
-  const [stack, setStack] = useState<StackItem[]>(() => {
-    try {
-      // Try to load from localStorage
-      const savedStack = localStorage.getItem(STORAGE_KEY);
-      if (savedStack) {
-        return JSON.parse(savedStack);
-      }
-    } catch (error) {
-      console.error('Failed to load tasks from localStorage:', error);
+  const dispatch = useAppDispatch();
+  
+  // Select data from Redux store
+  const normalizedTasks = useAppSelector(selectCurrentTasks);
+  const childrenMap = useAppSelector(selectChildrenMap);
+  const tasksById = useAppSelector(selectTasksById);
+  const canNavigateBack = useAppSelector(selectCanNavigateBack);
+  const headerText = useAppSelector(selectHeaderText);
+  const canUndo = useAppSelector(selectCanUndo);
+  const canRedo = useAppSelector(selectCanRedo);
+  
+  // Convert normalized tasks to the format expected by TaskListView
+  const convertToViewTask = (task: NormalizedTask): Task => {
+    const childIds = childrenMap[task.id] || [];
+    const subtasks = childIds.map((id: string) => convertToViewTask(tasksById[id]));
+    
+    return {
+      id: task.id,
+      text: task.text,
+      subtasks: subtasks.length > 0 ? subtasks : undefined
+    };
+  };
+  
+  // Convert the current tasks
+  const currentTasks = normalizedTasks.map((task: NormalizedTask) => convertToViewTask(task));
+  
+  // Initialize tasks from localStorage or use default
+  useEffect(() => {
+    // Check if storage is available
+    if (!isStorageAvailable()) {
+      console.warn('LocalStorage is not available. Using default tasks.');
+      dispatch(initializeTasks(DEFAULT_TASKS));
+      return;
     }
     
-    // Default initial stack
-    return [
-      {
-        tasks: [
-          { id: '1', text: 'Sample Task 1' },
-          { id: '2', text: 'Sample Task 2' },
-        ],
-        parentTaskId: undefined
-      },
-    ];
-  });
-  
-  // Save to localStorage whenever stack changes
-  useEffect(() => {
-    try {
-      // Store data in localStorage for offline use
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stack));
-      
-      // Also store the last update timestamp
-      localStorage.setItem(`${STORAGE_KEY}-updated`, new Date().toISOString());
-      
-      // Notify the user that data is saved (only in standalone mode)
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('Data saved for offline use');
-      }
-    } catch (error) {
-      console.error('Failed to save tasks to localStorage:', error);
-      
-      // Show error notification if in standalone mode
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        alert('Failed to save your changes. Please check your storage settings.');
-      }
+    // Initialize from Redux store (which already loads from localStorage)
+    if (normalizedTasks.length === 0) {
+      dispatch(initializeTasks(DEFAULT_TASKS));
     }
-  }, [stack]);
+  }, [dispatch, normalizedTasks.length]);
   
   // Check if running in standalone mode (PWA)
   useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (isStandalone) {
-      console.log('Running as installed PWA');
-      
-      // Listen for online/offline events
-      const handleOnlineStatus = () => {
-        if (navigator.onLine) {
-          console.log('App is online');
-        } else {
-          console.log('App is offline');
-        }
-      };
-      
-      window.addEventListener('online', handleOnlineStatus);
-      window.addEventListener('offline', handleOnlineStatus);
-      
-      // Initial check
-      handleOnlineStatus();
-      
-      return () => {
-        window.removeEventListener('online', handleOnlineStatus);
-        window.removeEventListener('offline', handleOnlineStatus);
-      };
+    // Check if matchMedia is available (it's not in test environment)
+    if (window.matchMedia) {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      if (isStandalone) {
+        console.log('Running as installed PWA');
+        
+        // Listen for online/offline events
+        const handleOnlineStatus = () => {
+          if (navigator.onLine) {
+            console.log('App is online');
+          } else {
+            console.log('App is offline');
+          }
+        };
+        
+        window.addEventListener('online', handleOnlineStatus);
+        window.addEventListener('offline', handleOnlineStatus);
+        
+        // Initial check
+        handleOnlineStatus();
+        
+        return () => {
+          window.removeEventListener('online', handleOnlineStatus);
+          window.removeEventListener('offline', handleOnlineStatus);
+        };
+      }
     }
   }, []);
-
-  // Current tasks are always the tasks in the last stack item
-  const currentTasks = stack[stack.length - 1].tasks;
-
-  // Update current tasks (with TypeScript fix)
-  const setCurrentTasks = (newTasksOrUpdater: React.SetStateAction<Task[]>) => {
-    setStack((prev) => {
-      const updatedStack = [...prev];
-      const lastStackItem = updatedStack[updatedStack.length - 1];
-      
-      const newTasks = typeof newTasksOrUpdater === 'function' 
-        ? newTasksOrUpdater(lastStackItem.tasks) 
-        : newTasksOrUpdater;
-      
-      // Update the tasks while preserving the parentTaskId
-      updatedStack[updatedStack.length - 1] = {
-        ...lastStackItem,
-        tasks: newTasks
-      };
-      
-      return updatedStack;
-    });
-  };
-
+  
   // Open subtasks view
   const openSubtasks = (task: Task) => {
-    // Initialize empty subtasks array if it doesn't exist
-    const subtasks = task.subtasks || [];
-    
-    // Push subtasks to stack with reference to parent task
-    setStack((prev) => {
-      const newStack = [...prev];
-      // Store the parent task ID so we can update it when going back
-      newStack.push({
-        tasks: [...subtasks],
-        parentTaskId: task.id
-      });
-      return newStack;
-    });
+    dispatch(navigateToTask(task.id));
   };
-
+  
   // Go back to previous view
   const goBack = () => {
-    if (stack.length > 1) {
-      // Get current stack item (contains subtasks and parentTaskId)
-      const currentStackItem = stack[stack.length - 1];
-      const updatedSubtasks = currentStackItem.tasks;
-      const parentTaskId = currentStackItem.parentTaskId;
-      
-      // Update the parent task with the possibly modified subtasks
-      setStack((prev) => {
-        const newStack = prev.slice(0, -1);
-        
-        // Find and update the parent task in the previous level
-        if (parentTaskId) {
-          const parentLevel = newStack[newStack.length - 1];
-          parentLevel.tasks = parentLevel.tasks.map(task => 
-            task.id === parentTaskId ? { ...task, subtasks: updatedSubtasks } : task
-          );
-        }
-        
-        return newStack;
-      });
-    }
+    dispatch(navigateToParent());
   };
 
-  // Get the parent task text if we're in a subtask view
-  const parentTaskText = stack.length > 1
-    ? (() => {
-        // Find the parent task in the previous stack level
-        const parentId = stack[stack.length - 1].parentTaskId;
-        const parentLevel = stack[stack.length - 2];
-        const parentTask = parentLevel.tasks.find(task => task.id === parentId);
-        return parentTask?.text || "Subtasks";
-      })()
-    : undefined;
+  // Handle undo action
+  const handleUndo = () => {
+    dispatch(undoAction());
+  };
 
+  // Handle redo action
+  const handleRedo = () => {
+    dispatch(redoAction());
+  };
+  
+  // Handle task updates
+  const setTasks = (newTasksOrUpdater: React.SetStateAction<Task[]>) => {
+    // Convert the updater function or new tasks array to a new array of tasks
+    const newTasks = typeof newTasksOrUpdater === 'function'
+      ? newTasksOrUpdater(currentTasks)
+      : newTasksOrUpdater;
+    
+    // For each task in the new array, find the corresponding task in the current array
+    // and dispatch the appropriate action if it has changed
+    newTasks.forEach((newTask, index) => {
+      const oldTask = currentTasks[index];
+      
+      // If the task text has changed, dispatch an edit action
+      if (oldTask && oldTask.text !== newTask.text) {
+        dispatch({
+          type: 'tasks/editTask',
+          payload: { id: newTask.id, text: newTask.text }
+        });
+      }
+      
+      // Note: This is a simplified implementation that doesn't handle
+      // adding, removing, or reordering tasks. In a complete implementation,
+      // you would need to compare the old and new arrays more thoroughly.
+    });
+  };
+  
   return (
     <div className="app">
-      <TaskListView
+      <TaskListViewRedux
         tasks={currentTasks}
-        setTasks={setCurrentTasks}
+        setTasks={setTasks}
         onOpenSubtasks={openSubtasks}
-        onBack={stack.length > 1 ? goBack : undefined}
-        parentTaskText={parentTaskText}
+        onBack={canNavigateBack ? goBack : undefined}
+        parentTaskText={headerText}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
     </div>
   );
